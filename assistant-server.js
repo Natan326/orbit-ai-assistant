@@ -1,49 +1,42 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
-const axios = require('axios');
+const { Configuration, OpenAIApi } = require('openai');
+
 require('dotenv').config();
-
 const app = express();
-const port = process.env.PORT || 3001;
-
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAIApi(configuration);
 
 app.post('/api/assistant', async (req, res) => {
   const { message } = req.body;
 
-  if (!message) return res.status(400).json({ error: 'Missing message' });
-
   try {
-    const openaiRes = await axios.post('https://api.openai.com/v1/chat/completions', {
+    const response = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'אתה עוזר באפליקציית ניהול. ענה תמיד במבנה JSON עם intent ונתונים. דוגמה: {"intent":"getEmployeeCount"}' },
-        { role: 'user', content: message }
-      ]
-    }, {
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+      messages: [{ role: 'user', content: message }],
     });
 
-    const gptReply = openaiRes.data.choices[0].message.content;
-    const parsed = JSON.parse(gptReply);
+    const reply = response.data.choices[0].message.content;
+    res.json({ reply });
 
-    if (parsed.intent === 'getEmployeeCount') {
-      // דוגמה לתשובה מדומה
-      return res.json({ reply: 'יש לך 27 עובדים רשומים.' });
+  } catch (error) {
+    console.error('🔴 OpenAI error:', error.response?.status, error.response?.data || error.message);
+
+    if (error.response?.status === 429) {
+      return res.json({ reply: 'יותר מדי בקשות. נסה שוב מאוחר יותר.' });
     }
 
-    return res.json({ reply: 'לא הבנתי את הבקשה, נסה שוב.' });
-  } catch (error) {
-    console.error('Assistant Error:', error.message);
-    return res.status(500).json({ reply: 'שגיאה בשרת, נסה שוב מאוחר יותר.' });
+    res.status(500).json({ reply: 'שגיאה בשרת. נסה שוב מאוחר יותר.' });
   }
 });
 
-app.listen(port, () => {
-  console.log(`AI Assistant server running at http://localhost:${port}`);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`✅ AI Assistant server running at http://localhost:${PORT}`);
 });
