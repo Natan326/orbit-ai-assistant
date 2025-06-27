@@ -1,0 +1,16 @@
+{
+  "name": "orbit-ai-assistant",
+  "version": "1.0.0",
+  "description": "AI Assistant for Orbit app using ChatGPT and Base44",
+  "main": "assistant-server.js",
+  "scripts": {
+    "start": "node assistant-server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  }
+}
